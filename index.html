@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Shelter Locator — San Mateo, Isabela</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css"/>
+<meta name="theme-color" content="#0078d7">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>html,body {height:100%; margin:0;}#map {height:100vh; width:100%;}</style>
+</head>
+<body>
+<div id="map"></div>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+<script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDnELgmIyXPVQAk69rz9db1m4fV64QIQeE",
+  authDomain: "shelter-dcdab.firebaseapp.com",
+  projectId: "shelter-dcdab",
+  storageBucket: "shelter-dcdab.appspot.com",
+  messagingSenderId: "192730355402",
+  appId: "1:192730355402:web:73a661300ab80e6db4c633",
+  measurementId: "G-TSKM5XS577"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+let markers=[];
+const map=L.map('map').setView([16.8827,121.5945],14);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
+
+function render(snapshot){
+  markers.forEach(m=>map.removeLayer(m)); markers=[];
+  snapshot.forEach(doc=>{
+    const s=doc.data(); if(!s.coords) return;
+    const lat=s.coords[0], lng=s.coords[1];
+    const marker=L.circleMarker([lat,lng],{radius:8,color:s.status==="full"?"gray":"green",
+      fillColor:s.status==="full"?"gray":"green",fillOpacity:0.8}).addTo(map);
+    marker.bindPopup(`<b>${s.name}</b><br>Capacity: ${s.capacity}<br>Status: ${s.status}`);
+    markers.push(marker);
+  });
+}
+db.collection('shelters').onSnapshot(render);
+</script>
+<script>
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("./sw.js").then(reg=>{
+    const isMobile=/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if(isMobile){
+      reg.onupdatefound=()=>{
+        const newWorker=reg.installing;
+        newWorker.onstatechange=()=>{
+          if(newWorker.state==="installed"&&navigator.serviceWorker.controller){
+            alert("📱 Bagong update available, reloading...");
+            window.location.reload();
+          }
+        };
+      };
+    }
+  });
+}
+</script>
+</body>
+</html>
